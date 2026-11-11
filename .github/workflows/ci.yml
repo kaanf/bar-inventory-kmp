@@ -1,0 +1,58 @@
+name: KMP CI
+
+on:
+  pull_request:
+    branches:
+      - dev
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kmp-ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  kmp-check:
+    name: KMP Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Validate repository structure
+        run: |
+          test -f README.md
+          test -f .gitignore
+          test -f .github/workflows/ci.yml
+          echo "Repository structure validated"
+
+      - name: Validate secret exclusions in .gitignore
+        run: |
+          for pattern in '.env' 'local.properties' '*.pem' '*.key' '*.p12' '*.jks' '*.keystore' '*.mobileprovision' 'google-services.json' 'GoogleService-Info.plist'; do
+            grep -qxF "$pattern" .gitignore || { echo "::error::.gitignore is missing '$pattern'"; exit 1; }
+          done
+          echo "Secret exclusions present"
+
+      - name: Check for committed secret files
+        run: |
+          found=$(git ls-files | grep -Ei '(^|/)\.env($|\.)|(^|/)local\.properties$|\.(pem|key|p12|jks|keystore|mobileprovision)$|(^|/)google-services\.json$|(^|/)GoogleService-Info\.plist$' || true)
+          if [ -n "$found" ]; then
+            echo "::error::Secret-like files are tracked:"
+            echo "$found"
+            exit 1
+          fi
+          echo "No secret-like files tracked"
+
+      - name: Report build status
+        run: |
+          if [ -f build.gradle.kts ] || [ -f settings.gradle.kts ]; then
+            echo "::warning::Gradle project detected, but this workflow does not build it yet"
+          else
+            echo "No KMP project yet; Android and iOS builds are not run"
+          fi
