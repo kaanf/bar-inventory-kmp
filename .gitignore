@@ -1,0 +1,26 @@
+# Build / IDE
+.gradle/
+build/
+.idea/
+*.iml
+.kotlin/
+.DS_Store
+local.properties
+
+# iOS
+xcuserdata/
+DerivedData/
+Pods/
+
+# Secrets and signing
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist
+secrets.*
